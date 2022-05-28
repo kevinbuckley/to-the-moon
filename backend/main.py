@@ -11,18 +11,18 @@ import os
 API_KEY = os.getenv('API_KEY')
 print(API_KEY)
 
-def get_crypto_price(symbol):
-    api_url = f'https://cloud.iexapis.com/stable/crypto/{symbol}/price?token={API_KEY}'
-    raw = requests.get(api_url).json()
-    price = raw['price']
-    return float(price)
+def get_crypto_price(symbol, exchange, start_date = None):
+    api_url = f'https://www.alphavantage.co/query?function=DIGITAL_CURRENCY_DAILY&symbol={symbol}&market={exchange}&apikey={API_KEY}'
+    raw_df = requests.get(api_url).json()
+    df = pd.DataFrame(raw_df['Time Series (Digital Currency Daily)']).T
+    df = df.rename(columns = {'1a. open (USD)': 'open', '2a. high (USD)': 'high', '3a. low (USD)': 'low', '4a. close (USD)': 'close', '5. volume': 'volume'})
+    for i in df.columns:
+        df[i] = df[i].astype(float)
+    df.index = pd.to_datetime(df.index)
+    df = df.iloc[::-1].drop(['1b. open (USD)', '2b. high (USD)', '3b. low (USD)', '4b. close (USD)', '6. market cap (USD)'], axis = 1)
+    if start_date:
+        df = df[df.index >= start_date]
+    return df
 
-
-start = '1/1/2020'
-end = '1/31/2022'
-data = web.DataReader('btcusd', 'iex', start, end)
-
-print(data)
-    
-#btc = get_crypto_price('btcusd')
-#print('Price of 1 Bitcoin: {} USD'.format(btc))
+btc = get_crypto_price(symbol = 'BTC', exchange = 'USD', start_date = '2020-01-01')
+print(btc)
